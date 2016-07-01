@@ -113,6 +113,15 @@
             }
         },
 
+        disableCallbacks: function disableCallbacks() {
+            // Disable hover callbacks and set fake run
+            this.wrapperElement.removeEventListener('mouseenter', this._onmouseenter_bound);
+            this.wrapperElement.removeEventListener('mouseleave', this._onmouseleave_bound);
+            this.wrapperElement.removeEventListener('click', this._onclick_bound, true);
+            this.wrapperElement.removeEventListener('keydown', this._onkeydown_bound);
+        },
+
+
         /**
          * Activates (highlights) this Menu Item
          *
@@ -134,7 +143,6 @@
          * @returns {StyledElements.MenuItem} - The instance on which the member is called.
          */
         addIconClass: function addIconClass(iconClass) {
-
             if (this.iconElement == null) {
                 this.iconElement = document.createElement('span');
                 this.thumbnailElement.appendChild(this.iconElement);

@@ -28,7 +28,6 @@
 
     var getFieldValue = function getFieldValue(item, field) {
         var fieldPath, currentNode, currentField;
-
         if (typeof field === "string") {
             fieldPath = [field];
         } else {
@@ -47,41 +46,109 @@
         return currentNode;
     };
 
-    var elementPassFilter = function elementPassFilter(element, pattern) {
-        return Object.getOwnPropertyNames(element).some(function (key, index, array) {
-            var value = getFieldValue(element, key);
-            switch (typeof value) {
-            case "number":
-                return pattern.test("" + value);
-            case "string":
+    var elementPassFilter = function elementPassFilter(element, pattern, column) {
+        // If theres column data, filter said column
+        if (column) {
+            var value = getFieldValue(element, column);
+            return pattern.test(value);
+        } else {
+            // If there's no column data, look for any property that passes the filter
+            return Object.getOwnPropertyNames(element).some(function (key, index, array) {
+                var value = getFieldValue(element, key);
                 return pattern.test(value);
-            default:
-                return false;
-            }
-        });
+            });
+        }
     };
 
     var createFilterPattern = function createFilterPattern(keywords) {
         return new RegExp(utils.escapeRegExp(keywords), 'i');
     };
 
-    var filterElements = function filterElements(keywords) {
-        var filteredElements, i, element;
-        var priv = privates.get(this);
+    var buildFilters = function buildFilters(string) {
+        var patterns = StyledElements.Utils.split(string.substring(1), new RegExp("[aA][nN][dD]"));
 
-        if (!keywords) {
-            priv.filteredElements = priv.elements.slice(0);
-            return;
+        var result = {};
+        for (var i = 0; i < patterns.length; i++) {
+            var aux = patterns[i].split("=");
+            // If there's not enough paramenters, skip the filter (or should it crash (?))
+            if (aux.length !== 2) {
+                continue;
+            }
+            var column = aux[0].trim();
+            var filter = aux[1].trim();
+            result[column] = filter;
         }
+        return result;
+    };
 
-        var pattern = createFilterPattern(keywords);
-        filteredElements = [];
-        for (i = 0; i < priv.elements.length; i += 1) {
-            element = priv.elements[i];
-            if (elementPassFilter.call(this, element, pattern)) {
-                filteredElements.push(element);
+    var filterElements = function filterElements(filters) {
+        var filteredElements, i, element, column, filter;
+        var priv = privates.get(this.widget);
+        var elements = priv.elements;
+        // If the filters are empty
+        if (!filters) {
+            return elements;
+        }
+        filteredElements = []; // Clean the list
+
+        if (typeof filters === "string") {
+
+            // If it starts with "~", its a column filter with string format, so convert it.
+            if (filters[0] === "~") {
+                filters = buildFilters(filters);
+            } else {
+                // Previous behaviour: Looks for any property that has the filter substring
+                var pattern = createFilterPattern(filters);
+
+                for (i = 0; i < elements.length; i += 1) {
+                    element = elements[i];
+                    if (elementPassFilter(element, pattern)) {
+                        filteredElements.push(element);
+                    }
+                }
+
+                return filteredElements;
             }
         }
+        var result = [];
+        // Apply column filters
+        var keys = Object.keys(filters);
+        if (keys.length === 0) {
+            return elements;
+        }
+        for (var j = 0; j < keys.length; j++) {
+            column = keys[j];
+            filter = createFilterPattern(filters[column]);
+
+            // Test the filter
+            var filtered = [];
+            for (i = 0; i < elements.length; i += 1) {
+                element = elements[i];
+                if (elementPassFilter(element, filter, column)) {
+                    filtered.push(i);
+                }
+            }
+            // The first time values are saved, then, values are removed if they are not present in the next filters (AND)
+            if (j === 0) {
+                result = filtered;
+            } else {
+                for (i = 0; i < result.length; i++) {
+                    if (filtered.indexOf(result[i]) === -1) {
+                        result.splice(i--, 1);
+                    }
+                }
+            }
+            // As theres only AND filters, if the result becomes empty, just leave
+            if (result.length === 0) {
+                break;
+            }
+        }
+
+        // Get the real values from the valid index list.
+        for (i = 0; i < result.length; i++) {
+            filteredElements.push(elements[result[i]]);
+        }
+
         priv.filteredElements = filteredElements;
     };
 
@@ -100,10 +167,12 @@
             inverse = true;
             sort_id = sort_id.substr(1);
         }
+
         column = priv.sort_info[sort_id] || {};
         if (!('field' in column)) {
             column.field = sort_id;
         }
+
         sortFunc = column.sortFunc;
 
         if (sortFunc == null) {
@@ -251,7 +320,7 @@
         var force_sort = false;
 
         if ('keywords' in newOptions) {
-            filterElements.call(this, newOptions.keywords);
+            this.filteredElements = filterElements(this.elements, newOptions.keywords);
             force_sort = true;
         }
 
@@ -347,6 +416,15 @@
 
         if (this.options.idAttr && getFieldValue(newElement, this.options.idAttr) == null) {
             throw new Error("The element must have a valid ID");
+        }
+
+        // Apply filters to the new element
+        if (this.options.keywords) {
+            var filtered = filterElements([newElement], this.options.keywords);
+            if (filtered.length === 1) {
+                priv.filteredElements.push(filtered[0]);
+                sortElements.call(this, this.options.order);
+            }
         }
 
         // If the element already exists, remove it and add it again (updates it and sets it last)

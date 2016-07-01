@@ -312,8 +312,9 @@
 
     /* ModelTable */
     StyledElements.ModelTable = extend(RealStyledElements.ModelTable, {
-        Tooltip: StyledElements.Tooltip
-    });
+        Tooltip: StyledElements.Tooltip,
+        PopupMenu: StyledElements.PopupMenu
+    }, {extending: true});
 
     /* Button */
     StyledElements.Button = extend(RealStyledElements.Button, {

@@ -26,7 +26,7 @@
     "use strict";
 
     var buildHeader = function buildHeader() {
-        var i, column, cell, label, tooltip;
+        var i, column, cell, label;
 
         var priv = privates.get(this);
 
@@ -38,6 +38,8 @@
 
             cell = document.createElement('div');
             cell.className = 'se-model-table-cell';
+            cell.index = i;
+
             if (typeof column.class === 'string') {
                 cell.classList.add(column.class);
             }
@@ -48,19 +50,117 @@
                 cell.style.flexGrow = 0;
             }
             cell.textContent = label;
+
+
+            // Create the popup menu
+            cell.menu = new this.PopupMenu();
+            cell.isMenuVisible = false; // The native isVisible method of the StyledElements popup menu seems to lie about its status.
+            cell.addEventListener('click', toggleCellMenuCallback.bind({cell: cell, table: this}));
+
+            // Add the sorting menu item
             if (column.sortable !== false) {
-                cell.classList.add('sortable');
-                tooltip = new this.Tooltip({
-                    content: utils.interpolate(utils.gettext('Sort by %(column_name)s'), {column_name: label}),
-                    placement: ['bottom', 'top', 'right', 'left']
-                });
-                tooltip.bind(cell);
-                cell.callback = sortByColumnCallback.bind({widget: this, column: i});
-                cell.addEventListener('click', cell.callback, true);
+                cell.sortingState = false;
+                cell.sort = sortByColumnCallback.bind({widget: this, column: i});
+                cell.sortCallback = sortCallback;
+
+                cell.sortingItem = new StyledElements.MenuItem("Ascending", cell.sortCallback, {cell: cell});
+                cell.menu.append(cell.sortingItem);
             }
+
+            // Add the filter menu item
+            var filterItem = new StyledElements.MenuItem("");
+
+            // Remove non-needed events (They actually break it in this case)
+            filterItem.wrapperElement.removeEventListener('mouseenter', filterItem._onmouseenter_bound);
+            filterItem.wrapperElement.removeEventListener('mouseleave', filterItem._onmouseleave_bound);
+            filterItem.wrapperElement.removeEventListener('click', filterItem._onclick_bound, true);
+            filterItem.wrapperElement.removeEventListener('keydown', filterItem._onkeydown_bound);
+
+            // Creates filter dropdown or text field
+            var filterElement;
+            if (column.filterOptions && column.filterOptions.length > 0) {
+                // Creates a dropdown with the available options
+                filterElement = new StyledElements.Select();
+                var entries = [];
+                entries.push({label: "Any", value: ""}); // Default any option
+                for (var x = 0; x < column.filterOptions.length; x++) {
+                    var item = column.filterOptions[x];
+                    entries.push({label: item, value: item});
+                }
+                filterElement.addEntries(entries);
+                filterElement.addEventListener("change", filterCallback.bind({table: this, filterElement: filterElement, field: column.field}));
+            } else {
+                filterElement = new StyledElements.TextField({placeholder: 'Filter'});
+                filterElement.addEventListener('submit', filterCallback.bind({table: this, filterElement: filterElement, field: column.field}));
+            }
+
+            filterItem.wrapperElement.appendChild(filterElement.wrapperElement);
+            cell.menu.append(filterItem);
+
+            // Toggle sort order switch button
+            var holder = new StyledElements.MenuItem("");
+            holder.disableCallbacks();
+
+            cell.testToggle = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
+            cell.testToggle.setCallback(testSwitchCallback.bind({cell: cell, table: this}));
+
+            cell.testToggle.appendTo(holder);
+            cell.menu.append(holder);
+
             priv.header.appendChild(cell);
             priv.headerCells.push(cell);
         }
+        this.sortingColumn = -1;
+    };
+
+    // Toggles the menu of the header cell
+    var toggleCellMenuCallback = function toggleCellMenuCallback () {
+        if (!this.cell.menu.isVisible()) {
+            this.cell.menu.show(this.cell.getBoundingClientRect());
+            if (this.table.sortingColumn !== this.cell.index) {
+                this.cell.testToggle.deselectButtons();
+            }
+
+        } else {
+            this.cell.menu.hide();
+        }
+        this.cell.isMenuVisible = !this.cell.isMenuVisible;
+    };
+
+    var filterCallback = function filterCallback () {
+
+        if (!this.table.currentFilters) {
+            this.table.currentFilters = {};
+        }
+        var pattern = this.filterElement.getValue();
+        if (!pattern || pattern === "") {
+            delete this.table.currentFilters[this.field];
+        } else {
+            this.table.currentFilters[this.field] = pattern;
+        }
+
+        this.table.source.changeOptions({'keywords': this.table.currentFilters});
+    };
+
+    var testSwitchCallback = function testSwitchCallback (value) {
+        this.cell.sortingState = !value;
+        this.cell.sort(!value);
+        this.table.sortingColumn = this.cell.index;
+    };
+
+    // Change the sorting order and sort by this column
+    var sortCallback = function sortCallback (ob, context) {
+        if (context.cell.sortingState) {
+            context.cell.sortingItem.setTitle("Ascending");
+            context.cell.sortingState = false;
+        } else {
+            context.cell.sortingItem.setTitle("Descending");
+            context.cell.sortingState = true;
+        }
+        // context.menu.show(context.cell.getBoundingClientRect());
+        context.cell.sort();
+
+        return true;
     };
 
     var highlight_selection = function highlight_selection() {
@@ -391,6 +491,7 @@
     utils.inherit(ModelTable, StyledElements.StyledElement);
 
     ModelTable.prototype.Tooltip = StyledElements.Tooltip;
+    ModelTable.prototype.PopupMenu = StyledElements.PopupMenu;
 
     /**
      * Changes current selection. Removes the selection when no passing any parameter
@@ -451,11 +552,14 @@
         this.source.changeOptions({order: order});
     };
 
-    var sortByColumnCallback = function sortByColumnCallback() {
+    var sortByColumnCallback = function sortByColumnCallback(order) {
+        var descending;
         var priv = privates.get(this.widget);
-        var descending = priv.sortColumn === this.column ?
-            !priv.sortInverseOrder :
-            false;
+        if (typeof order === "boolean") {
+            descending = order;
+        } else {
+            descending = priv.sortColumn === this.column ? !priv.sortInverseOrder : false;
+        }
 
         sortByColumn.call(this.widget, this.column, descending);
     };

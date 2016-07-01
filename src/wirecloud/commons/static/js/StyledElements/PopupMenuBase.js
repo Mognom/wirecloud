@@ -228,16 +228,24 @@
     PopupMenuBase.prototype._menuItemCallback = function _menuItemCallback(menuItem) {
         this.dispatchEvent('click', menuItem);
 
-        // This if is necessary for touch screens where mouseenter and
-        // mouseleave events are not raised
-        // In that case, the user will "click" the menu item and
-        // the popup menu should continue to be displayed
-        if (!menuItem.hasClassName('submenu')) {
-            this.hide();
-        }
-
         if (typeof menuItem.run === 'function') {
-            menuItem.run(this._context, menuItem.context);
+            if (!menuItem.run(this._context, menuItem.context)) {
+                // This if is necessary for touch screens where mouseenter and
+                // mouseleave events are not raised
+                // In that case, the user will "click" the menu item and
+                // the popup menu should continue to be displayed
+                if (!menuItem.hasClassName('submenu')) {
+                    this.hide();
+                }
+            }
+        } else {
+            // This if is necessary for touch screens where mouseenter and
+            // mouseleave events are not raised
+            // In that case, the user will "click" the menu item and
+            // the popup menu should continue to be displayed
+            if (!menuItem.hasClassName('submenu')) {
+                this.hide();
+            }
         }
     };
 
