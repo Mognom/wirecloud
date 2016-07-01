@@ -57,16 +57,6 @@
             cell.isMenuVisible = false; // The native isVisible method of the StyledElements popup menu seems to lie about its status.
             cell.addEventListener('click', toggleCellMenuCallback.bind({cell: cell, table: this}));
 
-            // Add the sorting menu item
-            if (column.sortable !== false) {
-                cell.sortingState = false;
-                cell.sort = sortByColumnCallback.bind({widget: this, column: i});
-                cell.sortCallback = sortCallback;
-
-                cell.sortingItem = new StyledElements.MenuItem("Ascending", cell.sortCallback, {cell: cell});
-                cell.menu.append(cell.sortingItem);
-            }
-
             // Add the filter menu item
             var filterItem = new StyledElements.MenuItem("");
 
@@ -98,14 +88,16 @@
             cell.menu.append(filterItem);
 
             // Toggle sort order switch button
-            var holder = new StyledElements.MenuItem("");
-            holder.disableCallbacks();
+            if (column.sortable !== false) {
+                var holder = new StyledElements.MenuItem("");
+                holder.disableCallbacks();
 
-            cell.testToggle = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
-            cell.testToggle.setCallback(testSwitchCallback.bind({cell: cell, table: this}));
+                cell.testToggle = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
+                cell.testToggle.setCallback(testSwitchCallback.bind({cell: cell, table: this}));
 
-            cell.testToggle.appendTo(holder);
-            cell.menu.append(holder);
+                cell.testToggle.appendTo(holder);
+                cell.menu.append(holder);
+            }
 
             priv.header.appendChild(cell);
             priv.headerCells.push(cell);
@@ -117,7 +109,7 @@
     var toggleCellMenuCallback = function toggleCellMenuCallback () {
         if (!this.cell.menu.isVisible()) {
             this.cell.menu.show(this.cell.getBoundingClientRect());
-            if (this.table.sortingColumn !== this.cell.index) {
+            if (this.table.sortingColumn !== this.cell.index && this.cell.testToggle) {
                 this.cell.testToggle.deselectButtons();
             }
 
