@@ -119,7 +119,7 @@
         this.cell.isMenuVisible = !this.cell.isMenuVisible;
     };
 
-    var filterCallback = function filterCallback () {
+    var filterCallback = function filterCallback() {
 
         if (!this.table.currentFilters) {
             this.table.currentFilters = {};
@@ -138,21 +138,6 @@
         this.cell.sortingState = !value;
         sortByColumn.call(this.table, this.cell.index, !value);
         this.table.sortingColumn = this.cell.index;
-    };
-
-    // Change the sorting order and sort by this column
-    var sortCallback = function sortCallback (ob, context) {
-        if (context.cell.sortingState) {
-            context.cell.sortingItem.setTitle("Ascending");
-            context.cell.sortingState = false;
-        } else {
-            context.cell.sortingItem.setTitle("Descending");
-            context.cell.sortingState = true;
-        }
-        // context.menu.show(context.cell.getBoundingClientRect());
-        context.cell.sort();
-
-        return true;
     };
 
     var highlight_selection = function highlight_selection() {
@@ -542,18 +527,6 @@
             order = null;
         }
         this.source.changeOptions({order: order});
-    };
-
-    var sortByColumnCallback = function sortByColumnCallback(order) {
-        var descending;
-        var priv = privates.get(this.widget);
-        if (typeof order === "boolean") {
-            descending = order;
-        } else {
-            descending = priv.sortColumn === this.column ? !priv.sortInverseOrder : false;
-        }
-
-        sortByColumn.call(this.widget, this.column, descending);
     };
 
     var getFieldValue = function getFieldValue(item, field) {
