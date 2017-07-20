@@ -92,10 +92,10 @@
                 var holder = new StyledElements.MenuItem("");
                 holder.disableCallbacks();
 
-                cell.testToggle = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
-                cell.testToggle.setCallback(testSwitchCallback.bind({cell: cell, table: this}));
+                cell.toggleOrderButton = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
+                cell.toggleOrderButton.setCallback(switchOrderCallback.bind({cell: cell, table: this}));
 
-                cell.testToggle.appendTo(holder);
+                cell.toggleOrderButton.appendTo(holder);
                 cell.menu.append(holder);
             }
 
@@ -106,11 +106,11 @@
     };
 
     // Toggles the menu of the header cell
-    var toggleCellMenuCallback = function toggleCellMenuCallback () {
+    var toggleCellMenuCallback = function toggleCellMenuCallback() {
         if (!this.cell.menu.isVisible()) {
             this.cell.menu.show(this.cell.getBoundingClientRect());
-            if (this.table.sortingColumn !== this.cell.index && this.cell.testToggle) {
-                this.cell.testToggle.deselectButtons();
+            if (this.table.sortingColumn !== this.cell.index && this.cell.toggleOrderButton) {
+                this.cell.toggleOrderButton.deselectButtons();
             }
 
         } else {
@@ -134,9 +134,9 @@
         this.table.source.changeOptions({'keywords': this.table.currentFilters});
     };
 
-    var testSwitchCallback = function testSwitchCallback (value) {
+    var switchOrderCallback = function switchOrderCallback(value) {
         this.cell.sortingState = !value;
-        this.cell.sort(!value);
+        sortByColumn.call(this.table, this.cell.index, !value);
         this.table.sortingColumn = this.cell.index;
     };
 
@@ -156,7 +156,7 @@
     };
 
     var highlight_selection = function highlight_selection() {
-        var priv = privates.get(this);
+        var priv = priv.get(this);
         this.selection.forEach(function (id) {
             if (id in priv.current_elements) {
                 priv.current_elements[id].row.classList.add('highlight');
