@@ -83,11 +83,12 @@
 
     var filterElements = function filterElements(filters) {
         var filteredElements, i, element, column, filter;
-        var priv = privates.get(this.widget);
+        var priv = privates.get(this);
         var elements = priv.elements;
         // If the filters are empty
         if (!filters) {
-            return elements;
+            priv.filteredElements = elements.slice(0);
+            return;
         }
         filteredElements = []; // Clean the list
 
@@ -320,7 +321,7 @@
         var force_sort = false;
 
         if ('keywords' in newOptions) {
-            this.filteredElements = filterElements(this.elements, newOptions.keywords);
+            filterElements.call(this, newOptions.keywords);
             force_sort = true;
         }
 
