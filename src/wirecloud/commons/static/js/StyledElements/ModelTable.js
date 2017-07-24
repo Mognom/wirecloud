@@ -102,14 +102,15 @@
             priv.header.appendChild(cell);
             priv.headerCells.push(cell);
         }
-        this.sortingColumn = -1;
+        priv.sortColumn = null;
     };
 
     // Toggles the menu of the header cell
     var toggleCellMenuCallback = function toggleCellMenuCallback() {
+        var priv = privates.get(this.table)
         if (!this.cell.menu.isVisible()) {
             this.cell.menu.show(this.cell.getBoundingClientRect());
-            if (this.table.sortingColumn !== this.cell.index && this.cell.toggleOrderButton) {
+            if (priv.sortColumn !== this.cell.index && this.cell.toggleOrderButton) {
                 this.cell.toggleOrderButton.deselectButtons();
             }
 
