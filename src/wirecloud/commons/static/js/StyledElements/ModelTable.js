@@ -92,7 +92,7 @@
                 var holder = new StyledElements.MenuItem("");
                 holder.disableCallbacks();
 
-                cell.toggleOrderButton = new StyledElements.SwitchButton({button1: {name: "Asc", iconClass: "fa fa-sort-up"}, button2: {name: "Des", iconClass: "fa fa-sort-down"}});
+                cell.toggleOrderButton = new StyledElements.SwitchButton({buttons: [{name: "Asc", iconClass: "fa fa-sort-up"}, {name: "Des", iconClass: "fa fa-sort-down"}]});
                 cell.toggleOrderButton.setCallback(switchOrderCallback.bind({cell: cell, table: this}));
 
                 cell.toggleOrderButton.appendTo(holder);
@@ -135,7 +135,8 @@
         this.table.source.changeOptions({'keywords': this.table.currentFilters});
     };
 
-    var switchOrderCallback = function switchOrderCallback(value) {
+    var switchOrderCallback = function switchOrderCallback(index) {
+        var value = index === 0;
         this.cell.sortingState = !value;
         sortByColumn.call(this.table, this.cell.index, !value);
         this.table.sortingColumn = this.cell.index;
