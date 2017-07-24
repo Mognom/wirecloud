@@ -142,7 +142,7 @@
     };
 
     var highlight_selection = function highlight_selection() {
-        var priv = priv.get(this);
+        var priv = privates.get(this);
         this.selection.forEach(function (id) {
             if (id in priv.current_elements) {
                 priv.current_elements[id].row.classList.add('highlight');
